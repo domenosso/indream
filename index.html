@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>InDream</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Шрифт -->
+  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Geologica', sans-serif;
+      background: #000;
+      color: #eee;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Звёзды */
+    .stars {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0;
+      animation: twinkle 3s infinite alternate;
+    }
+
+    @keyframes twinkle {
+      0% { opacity: 0.3; transform: scale(0.6); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Форма входа */
+    .auth-container {
+      z-index: 10;
+      background: rgba(30, 30, 30, 0.95);
+      padding: 40px 30px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 340px;
+      backdrop-filter: blur(12px);
+      border: 1px solid #444;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      color: #fff;
+    }
+
+    input {
+      all: unset;
+      width: 100%;
+      padding: 16px 18px;
+      margin: 12px 0;
+      background: #222;
+      border-radius: 16px;
+      border: 1px solid #444;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    input:focus {
+      border-color: #666;
+    }
+
+    input::placeholder {
+      color: #777;
+    }
+
+    .icon-btn {
+      all: unset;
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: #333;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.2s;
+      border: 1px solid #555;
+    }
+
+    .icon-btn:hover {
+      background: #444;
+      transform: translateY(-2px);
+    }
+
+    .icon-btn i {
+      width: 20px;
+      height: 20px;
+    }
+
+    .auth-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+
+    .link {
+      color: #aaa;
+      font-size: 13px;
+      margin-top: 12px;
+      display: block;
+      text-decoration: none;
+    }
+
+    .link:hover {
+      color: #ccc;
+    }
+
+    /* Аккаунт */
+    .account-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      padding: 20px;
+    }
+
+    .account-header {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .username {
+      font-size: 28px;
+      font-weight: 500;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    @media (min-width: 600px) {
+      .info-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .info-card {
+      background: #1a1a1a;
+      padding: 24px;
+      border-radius: 18px;
+      border: 1px solid #444;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .info-label {
+      color: #aaa;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .info-value {
+      font-family: monospace;
+      color: #ccc;
+      font-size: 18px;
+      word-break: break-all;
+    }
+
+    .password-container {
+      display: flex;
+      align-items: center;
+      background: #222;
+      border-radius: 12px;
+      padding: 0 12px;
+      border: 1px solid #444;
+      margin-top: 8px;
+    }
+
+    .password-input {
+      all: unset;
+      flex: 1;
+      padding: 12px 0;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 16px;
+    }
+
+    .toggle-pass {
+      all: unset;
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    .toggle-pass i {
+      width: 18px;
+      height: 18px;
+      color: #aaa;
+    }
+
+    /* Полноэкранное модальное окно */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+      text-align: center;
+    }
+
+    .modal-content {
+      background: #1a1a1a;
+      padding: 40px 30px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #444;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal h3 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .modal p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      color: #ddd;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 16px;
+      border-radius: 16px;
+      font-weight: 500;
+      font-size: 16px;
+      cursor: pointer;
+      border: 1px solid #555;
+    }
+
+    .modal-btn.yes {
+      background: #333;
+      color: #fff;
+    }
+
+    .modal-btn.no {
+      background: #222;
+      color: #aaa;
+    }
+
+    /* Админка */
+    .admin-panel {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #000;
+      padding: 20px;
+      display: none;
+      overflow-y: auto;
+      z-index: 50;
+    }
+
+    .admin-user {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      border: 1px solid #333;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .admin-btn {
+      all: unset;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: #333;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 1px solid #555;
+    }
+
+    .admin-btn.delete {
+      background: #400;
+    }
+
+    .admin-edit-form {
+      margin-top: 16px;
+      display: none;
+      gap: 12px;
+      flex-direction: column;
+    }
+
+    .admin-edit-form input {
+      padding: 12px 16px;
+      background: #222;
+      border: 1px solid #444;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .admin-edit-form button {
+      padding: 12px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Звёзды -->
+  <div class="stars" id="stars"></div>
+
+  <!-- Форма входа -->
+  <div class="auth-container" id="auth-container">
+    <h1 id="form-title">Вход в InDream</h1>
+    <input type="text" id="username" placeholder="Имя пользователя" />
+    <input type="password" id="password" placeholder="Пароль" />
+    <div class="auth-actions">
+      <button class="icon-btn" id="auth-btn"><i data-lucide="log-in"></i></button>
+      <button class="icon-btn" id="toggle-btn"><i data-lucide="user-plus"></i></button>
+    </div>
+    <a href="#" class="link" id="toggle-link">Нет аккаунта? Зарегистрироваться</a>
+  </div>
+
+  <!-- Аккаунт -->
+  <div class="account-screen" id="account-screen">
+    <div class="account-header">
+      <div class="username" id="acc-username"></div>
+      <button class="icon-btn" id="logout-btn"><i data-lucide="log-out"></i></button>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-label">ID</div>
+        <div class="info-value" id="acc-id"></div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Токен</div>
+        <div class="info-value" id="acc-token"></div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Пароль</div>
+        <div class="password-container">
+          <input type="password" class="password-input" id="acc-password" readonly />
+          <span class="toggle-pass" id="toggle-pass"><i data-lucide="eye"></i></span>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Приложения</div>
+        <div class="info-value" id="acc-apps">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Полноэкранное модальное окно для входа в приложение -->
+  <div class="modal" id="app-modal">
+    <div class="modal-content">
+      <h3>Вход в приложение</h3>
+      <p id="modal-text"></p>
+      <div class="modal-buttons">
+        <button class="modal-btn yes" id="modal-yes">Войти</button>
+        <button class="modal-btn no" id="modal-no">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Админка -->
+  <div class="admin-panel" id="admin-panel">
+    <h2 style="margin-bottom: 20px;">Админка InDream</h2>
+    <div id="users-list"></div>
+  </div>
+
+  <script>
+    // === Firebase ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyCbuwt3QCkYNSlwWYTOJgsVHWzpf4i8JiA",
+      authDomain: "indream-eb2fa.firebaseapp.com",
+      databaseURL: "https://indream-eb2fa-default-rtdb.firebaseio.com",
+      projectId: "indream-eb2fa",
+      storageBucket: "indream-eb2fa.firebasestorage.app",
+      messagingSenderId: "175216606522",
+      appId: "1:175216606522:web:f8349569d9f8432475a403"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // === Иконки ===
+    lucide.createIcons();
+
+    // === Звёзды ===
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 150; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      const size = Math.random() * 2.5 + 0.5;
+      star.style.width = star.style.height = `${size}px`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.animationDelay = `${Math.random() * 4}s`;
+      star.style.animationDuration = `${Math.random() * 3 + 2}s`;
+      starsContainer.appendChild(star);
+    }
+
+    // === Элементы ===
+    const authContainer = document.getElementById('auth-container');
+    const accountScreen = document.getElementById('account-screen');
+    const adminPanel = document.getElementById('admin-panel');
+    const modal = document.getElementById('app-modal');
+    const modalText = document.getElementById('modal-text');
+    const modalYes = document.getElementById('modal-yes');
+    const modalNo = document.getElementById('modal-no');
+
+    const formTitle = document.getElementById('form-title');
+    const authBtn = document.getElementById('auth-btn');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const toggleLink = document.getElementById('toggle-link');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+
+    const accUsername = document.getElementById('acc-username');
+    const accPassword = document.getElementById('acc-password');
+    const accToken = document.getElementById('acc-token');
+    const accId = document.getElementById('acc-id');
+    const accApps = document.getElementById('acc-apps');
+    const togglePass = document.getElementById('toggle-pass');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    let isLogin = true;
+    let currentUser = null;
+    let currentAppId = null;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const idproduct = urlParams.get('idproduct');
+    const isAdmin = urlParams.get('u') === 'true';
+
+    // === Токен 4 цифры ===
+    function generateToken() {
+      return String(Math.floor(1000 + Math.random() * 9000));
+    }
+
+    // === Переключение формы ===
+    function switchMode() {
+      isLogin = !isLogin;
+      formTitle.textContent = isLogin ? 'Вход в InDream' : 'Регистрация в InDream';
+      authBtn.innerHTML = isLogin ? '<i data-lucide="log-in"></i>' : '<i data-lucide="user-plus"></i>';
+      toggleBtn.innerHTML = isLogin ? '<i data-lucide="user-plus"></i>' : '<i data-lucide="log-in"></i>';
+      toggleLink.textContent = isLogin ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти';
+      lucide.createIcons();
+    }
+
+    toggleBtn.addEventListener('click', switchMode);
+    toggleLink.addEventListener('click', (e) => { e.preventDefault(); switchMode(); });
+
+    // === Авторизация ===
+    authBtn.addEventListener('click', () => {
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      if (!username || !password) return showCustomAlert('Заполните все поля');
+
+      const userRef = db.ref('users/' + username);
+      if (isLogin) {
+        userRef.once('value').then(snap => {
+          const user = snap.val();
+          if (!user || user.password !== password) return showCustomAlert('Неверные данные');
+          loginUser(user, username);
+        });
+      } else {
+        userRef.once('value').then(snap => {
+          if (snap.exists()) return showCustomAlert('Пользователь уже существует');
+          const token = generateToken();
+          const newUser = { password, token, apps: {} };
+          userRef.set(newUser).then(() => loginUser(newUser, username));
+        });
+      }
+    });
+
+    // === Вход ===
+    function loginUser(user, username) {
+      currentUser = { username, ...user };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+      authContainer.style.display = 'none';
+      accountScreen.style.display = 'flex';
+
+      accUsername.textContent = username;
+      accId.textContent = username;
+      accToken.textContent = user.token;
+      accPassword.value = user.password;
+      accApps.textContent = Object.keys(user.apps || {}).length ? 
+        Object.entries(user.apps).map(([k,v]) => `${k}: ${v}`).join(', ') : '—';
+
+      if (idproduct) showAppModal(idproduct);
+    }
+
+    // === Полноэкранное модальное окно ===
+    function showAppModal(appId) {
+      currentAppId = appId;
+      modalText.innerHTML = `Вы хотите войти в приложение<br><strong style="font-size:1.3em;">${appId}</strong><br>с InDream?`;
+      modal.style.display = 'flex';
+    }
+
+    modalYes.onclick = () => {
+      if (!currentUser || !currentAppId) return;
+      db.ref(`users/${currentUser.username}/apps/${currentAppId}`).set('yes');
+      modal.style.display = 'none';
+      showCustomAlert(`Доступ к ${currentAppId} разрешён`);
+    };
+
+    modalNo.onclick = () => {
+      if (!currentUser || !currentAppId) return;
+      db.ref(`users/${currentUser.username}/apps/${currentAppId}`).set('no');
+      modal.style.display = 'none';
+      showCustomAlert(`Доступ к ${currentAppId} запрещён`);
+    };
+
+    // === Показать пароль ===
+    togglePass.addEventListener('click', () => {
+      const type = accPassword.type === 'password' ? 'text' : 'password';
+      accPassword.type = type;
+      togglePass.innerHTML = type === 'text' ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>';
+      lucide.createIcons();
+    });
+
+    // === Выход ===
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      location.reload();
+    });
+
+    // === Админка ===
+    if (isAdmin) {
+      authContainer.style.display = 'none';
+      accountScreen.style.display = 'none';
+      adminPanel.style.display = 'block';
+      loadAdmin();
+    }
+
+    function loadAdmin() {
+      db.ref('users').on('value', snap => {
+        const users = snap.val() || {};
+        const list = document.getElementById('users-list');
+        list.innerHTML = '';
+        Object.entries(users).forEach(([username, data]) => {
+          const div = document.createElement('div');
+          div.className = 'admin-user';
+          div.innerHTML = `
+            <strong>${username}</strong><br>
+            Токен: <code>${data.token}</code><br>
+            Приложения: ${Object.entries(data.apps || {}).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}
+            <div class="admin-actions">
+              <button class="admin-btn" onclick="toggleEdit('${username}')"><i data-lucide="edit"></i></button>
+              <button class="admin-btn delete" onclick="deleteUser('${username}')"><i data-lucide="trash-2"></i></button>
+            </div>
+            <div class="admin-edit-form" id="edit-${username}">
+              <input type="text" placeholder="Новый ник" id="new-username-${username}" value="${username}">
+              <input type="text" placeholder="Новый пароль" id="new-password-${username}">
+              <input type="text" placeholder="Новый токен (4 цифры)" id="new-token-${username}" value="${data.token}">
+              <button onclick="saveUser('${username}')">Сохранить</button>
+            </div>
+          `;
+          list.appendChild(div);
+          lucide.createIcons();
+        });
+      });
+    }
+
+    window.toggleEdit = (u) => {
+      const form = document.getElementById(`edit-${u}`);
+      form.style.display = form.style.display === 'flex' ? 'none' : 'flex';
+    };
+
+    window.saveUser = (oldUsername) => {
+      const newUsername = document.getElementById(`new-username-${oldUsername}`).value.trim();
+      const newPassword = document.getElementById(`new-password-${oldUsername}`).value;
+      const newToken = document.getElementById(`new-token-${oldUsername}`).value;
+
+      if (!newUsername || !newPassword || !/^\d{4}$/.test(newToken)) {
+        return showCustomAlert('Проверьте данные');
+      }
+
+      const updates = {};
+      if (newUsername !== oldUsername) {
+        updates[`users/${oldUsername}`] = null;
+        updates[`users/${newUsername}`] = {
+          password: newPassword,
+          token: newToken,
+          apps: firebase.database().ref(`users/${oldUsername}/apps`).once('value').then(s => s.val() || {})
+        };
+      } else {
+        updates[`users/${newUsername}/password`] = newPassword;
+        updates[`users/${newUsername}/token`] = newToken;
+      }
+
+      db.ref().update(updates).then(() => {
+        showCustomAlert('Изменения сохранены');
+        document.getElementById(`edit-${oldUsername}`).style.display = 'none';
+      });
+    };
+
+    window.deleteUser = (u) => {
+      if (confirm(`Удалить ${u}?`)) {
+        db.ref('users/' + u).remove();
+      }
+    };
+
+    // === Кастомное уведомление ===
+    function showCustomAlert(msg) {
+      const alert = document.createElement('div');
+      alert.style.cssText = `
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: #1a1a1a; color: #fff; padding: 16px 24px; border-radius: 16px;
+        border: 1px solid #444; z-index: 1000; font-size: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      `;
+      alert.textContent = msg;
+      document.body.appendChild(alert);
+      setTimeout(() => alert.remove(), 3000);
+    }
+
+    // === Автовход ===
+    window.addEventListener('load', () => {
+      const saved = localStorage.getItem('currentUser');
+      if (saved && !isAdmin) {
+        const user = JSON.parse(saved);
+        db.ref('users/' + user.username).once('value').then(snap => {
+          if (snap.exists()) loginUser(snap.val(), user.username);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
